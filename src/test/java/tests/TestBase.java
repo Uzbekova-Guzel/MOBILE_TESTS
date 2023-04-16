@@ -1,7 +1,7 @@
 package tests;
 
 import com.codeborne.selenide.Configuration;
-import com.codeborne.selenide.logevents.SelenideLogger;
+import com.codeborne.selenide.Selenide;
 import drivers.BrowserstackMobileDriver;
 import drivers.LocalMobileDriver;
 import helpers.Attach;
@@ -10,15 +10,16 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
-import static com.codeborne.selenide.Selenide.*;
+import static com.codeborne.selenide.Selenide.closeWebDriver;
+import static com.codeborne.selenide.Selenide.open;
+import static com.codeborne.selenide.logevents.SelenideLogger.addListener;
 
 public class TestBase {
 
+    public static String deviceHost = System.getProperty("deviceHost");
+
     @BeforeAll
     static void beforeAll() {
-        Configuration.browser = LocalMobileDriver.class.getName();
-
-        String deviceHost = System.getProperty("deviceHost");
         switch (deviceHost) {
             case "android":
             case "ios":
@@ -28,27 +29,25 @@ public class TestBase {
             case "device":
                 Configuration.browser = LocalMobileDriver.class.getName();
                 break;
+            default:
+                throw new RuntimeException();
         }
         Configuration.browserSize = null;
     }
 
     @BeforeEach
-    void addListener() {
-        SelenideLogger.addListener("AllureSelenide", new AllureSelenide());
+    public void startDriver() {
+        addListener("AllureSelenide", new AllureSelenide());
         open();
     }
 
     @AfterEach
     void afterEach() {
-        String deviceHost = System.getProperty("deviceHost");
-
+        String sessionId = Selenide.sessionId().toString();
         Attach.pageSource();
         closeWebDriver();
-
-        if (deviceHost.equals("android")) {
-            Attach.addVideo(sessionId().toString());
-        } else if (deviceHost.equals("ios")) {
-            Attach.addVideo(sessionId().toString());
+        if (deviceHost.equals("android") || deviceHost.equals("ios")) {
+            Attach.addVideo(sessionId);
         }
     }
 
